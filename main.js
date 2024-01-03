@@ -10,6 +10,7 @@ const server = http.createServer(app);
 const WebSocket = require("ws");
 
 let keepAliveId;
+let visitorCount = 0; // Initialize visitor count
 
 const wss =
   process.env.NODE_ENV === "production"
@@ -22,6 +23,10 @@ console.log(`Server started on port ${serverPort} in stage ${process.env.NODE_EN
 wss.on("connection", function (ws, req) {
   console.log("Connection Opened");
   console.log("Client size: ", wss.clients.size);
+
+  // Increment visitor count for each new connection
+  visitorCount++;
+  console.log("Visitor Count: ", visitorCount);
 
   if (wss.clients.size === 1) {
     console.log("first connection. starting keepalive");
@@ -39,6 +44,7 @@ wss.on("connection", function (ws, req) {
 
   ws.on("close", (data) => {
     console.log("closing connection");
+    console.log("Visitor Count: ", visitorCount); // Log visitor count when a connection is closed
 
     if (wss.clients.size === 0) {
       console.log("last client disconnected, stopping keepAlive interval");
@@ -47,7 +53,7 @@ wss.on("connection", function (ws, req) {
   });
 });
 
-// Implement broadcast function because of ws doesn't have it
+// Implement broadcast function because ws doesn't have it
 const broadcast = (ws, message, includeSelf) => {
   if (includeSelf) {
     wss.clients.forEach((client) => {
@@ -67,7 +73,7 @@ const broadcast = (ws, message, includeSelf) => {
 /**
  * Sends a ping message to all connected clients every 50 seconds
  */
- const keepServerAlive = () => {
+const keepServerAlive = () => {
   keepAliveId = setInterval(() => {
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
@@ -77,7 +83,8 @@ const broadcast = (ws, message, includeSelf) => {
   }, 50000);
 };
 
-
 app.get('/', (req, res) => {
-    res.send('Hello World!');
+  // Construct JSON response with the incremented visitor count
+  const responseData = { test: visitorCount };
+  res.json(responseData);
 });
